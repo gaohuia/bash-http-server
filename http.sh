@@ -11,7 +11,7 @@ function output
   echo "Connection: Keep-Alive"
   echo "Keep-Alive: timeout=5, max=1000"
   echo "Content-Type: text/html; charset=utf-8"
-  echo "Transfer-Encoding: gzip" 
+  echo "Content-Encoding: gzip" 
   echo "Content-Length: "`stat -f '%z' ${temp}`
   echo ""
   cat ${temp}
