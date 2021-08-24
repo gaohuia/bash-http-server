@@ -1,2 +1,3 @@
+/static/(.*) static.sh
 / index.sh
 /users/([0-9]+) users.sh

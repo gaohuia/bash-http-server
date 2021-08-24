@@ -9,6 +9,7 @@ GZIP=1
 
 StatusCode=200
 ResponseHeaders=()
+HeaderOut=0
 
 function SetStatusCode
 {
@@ -45,6 +46,32 @@ function SetHeader
   fi
 }
 
+function HasHeader
+{
+  name="$1"
+  RE="([^:]*)\:(.*)$"
+
+  for header in "${ResponseHeaders[@]}"; do
+    if [[ ! "${header}" =~ $RE ]] || [[ "${BASH_REMATCH[1]}" == "${name}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+function GetHeader
+{
+  name="$1"
+  RE="([^:]*)\:(.*)$"
+
+  for header in "${ResponseHeaders[@]}"; do
+    if [[ ! "${header}" =~ $RE ]] || [[ "${BASH_REMATCH[1]}" == "${name}" ]]; then
+      echo "${BASH_REMATCH[2]}"
+    fi
+  done
+}
+
 function SetDefaultHeads
 {
   heads=(
@@ -52,7 +79,6 @@ function SetDefaultHeads
     "Date: `date -u +'%a, %d %b %Y %H:%M:%S GMT'`"
     "Connection: Keep-Alive"
     "Keep-Alive: timeout=5, max=1000"
-    "Content-Type: text/html; charset=utf-8"
   )
 
   for head in "${heads[@]}"; do
@@ -62,6 +88,13 @@ function SetDefaultHeads
 
 function FlushHeaders
 {
+  HeaderOut=1
+  echo "HTTP/1.1 ${StatusCode} ${STATUS_CODE[$StatusCode]}"
+
+  for head in "${ResponseHeaders[@]}"; do
+    echo "${head}"
+  done
+
   echo ""
 }
 
@@ -70,24 +103,36 @@ function output
   temp=$(mktemp)
   trap  'rm $temp' EXIT
 
-  statusCode=$1
-  content=$2
+  content=$1
 
-  echo -n ${content} | gzip -c > $temp
+  
+
+  if ! HasHeader 'Content-Type' ; then
+    SetHeader "Content-Type: text/html"    
+  fi
+
+  if GetHeader "Content-Type" | egrep 'text/html|text/javascript' > /dev/null ; then
+    gzip -c > $temp < $1
+    content="$temp"
+
+    SetHeader "Content-Encoding: gzip"
+  fi
 
   SetDefaultHeads
-  SetHeader "Content-Encoding: gzip"
-  SetHeader "Content-Length: `stat -f '%z' ${temp}`"
+  SetHeader "Content-Length: `stat -f '%z' ${content}`"
 
-  echo "HTTP/1.1 ${statusCode} ${STATUS_CODE[$statusCode]}"
+  FlushHeaders
 
-  for head in "${ResponseHeaders[@]}"; do
-    echo "${head}"
-  done
+  cat ${content}
+}
 
-  echo ""
-  # echo 'hllo'
-  cat ${temp}
+function InvokeAction
+{
+  temp=$(mktemp)
+  action=$1
+  shift
+  . "actions/${action}" "$@" > ${temp}
+  output "$temp"
 }
 
 function serve
@@ -134,8 +179,9 @@ function serve
         if [[ "${uri}" =~ ^${pattern}$ ]]; then
             matches=( "${BASH_REMATCH[@]}" )
             unset matches[0]
-            content="`. "actions/${action}" "${matches[@]}"`"
-            output 200 "${content}"
+
+            InvokeAction "${action}" "${matches[@]}"
+
             match=1
         fi
       done < ./routes.txt
@@ -148,6 +194,7 @@ function serve
       headers=()
 
       ResetHeaders
+      HeaderOut=0
     fi
   done
 }
