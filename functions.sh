@@ -187,7 +187,7 @@ function serve
       done < ./routes.txt
 
       if [[ $match -eq 0 ]]; then
-        output 404 "Not Found"
+        output <(echo "Not Found")
       fi
 
       requestLine=""
