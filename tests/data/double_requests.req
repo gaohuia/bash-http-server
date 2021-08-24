@@ -1,6 +1,16 @@
 GET / HTTP/1.1
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en,en-GB;q=0.9,zh-CN;q=0.8,zh;q=0.7,zh-TW;q=0.6,nl;q=0.5,fr;q=0.4
+Cache-Control: no-cache
+Connection: keep-alive
+Index: 1
 Host: test.com
 
 GET / HTTP/1.1
-Host: test.com
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en,en-GB;q=0.9,zh-CN;q=0.8,zh;q=0.7,zh-TW;q=0.6,nl;q=0.5,fr;q=0.4
+Cache-Control: no-cache
+Connection: keep-alive
+Index: 2
+Host: test2.com
 
